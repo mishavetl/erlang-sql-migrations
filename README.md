@@ -1,6 +1,8 @@
 Erlang SQL Migrations
 =====================
 
+**Mysql Edition**
+
 This is a very simple utility to add Rails-style migrations to Erlang
 projects. Keep in mind that it doesn't have any database abstraction in
 it, you'll still operate with plain SQL. Moreso, it only supports
