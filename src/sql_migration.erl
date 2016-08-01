@@ -19,8 +19,8 @@ migrations(App) ->
 
 migrate(Conn, Version, Migrations) ->
     BinVersion = atom_to_binary(Version, latin1),
-    case pgsql:squery(Conn, "SELECT id FROM migrations ORDER BY id DESC") of
-        {error,{error,error,<<"42P01">>,_,_}} ->
+    case mysql:query(Conn, "SELECT id FROM migrations ORDER BY id DESC") of
+        {error,{1146, <<"42S02">>,_}} ->
             %% init migrations and restart
             init_migrations(Conn),
             migrate(Conn, Version, Migrations);
@@ -32,9 +32,9 @@ migrate(Conn, Version, Migrations) ->
             Upgrade = lists:dropwhile(fun (V) -> V =< TopAtom end, Migrations),
             [ begin 
                   M:upgrade(Conn),
-                  pgsql:equery(Conn,
+                  mysql:query(Conn,
                                "INSERT INTO migrations (id) "
-                               "VALUES ($1)", [atom_to_binary(M, latin1)])
+                               "VALUES (?)", [atom_to_binary(M, latin1)])
               end || M <- Upgrade ],
             {upgrade, Upgrade};
         {ok, _, [{Top}|_]} when Top > BinVersion ->
@@ -43,8 +43,8 @@ migrate(Conn, Version, Migrations) ->
             Downgrade = lists:takewhile(fun (V) -> V >= TopAtom end, lists:reverse(Migrations)),
             [ begin 
                   M:downgrade(Conn),
-                  pgsql:equery(Conn,
-                               "DELETE FROM migrations WHERE id = $1",
+                  mysql:query(Conn,
+                               "DELETE FROM migrations WHERE id = ?",
                                [atom_to_binary(M, latin1)])
               end || M <- Downgrade ],
             {downgrade, Downgrade};
@@ -53,9 +53,9 @@ migrate(Conn, Version, Migrations) ->
             Upgrade = Migrations,
             [ begin 
                   M:upgrade(Conn),
-                  pgsql:equery(Conn,
+                  mysql:query(Conn,
                                "INSERT INTO migrations (id) "
-                               "VALUES ($1)", [atom_to_binary(M, latin1)])
+                               "VALUES (?)", [atom_to_binary(M, latin1)])
               end || M <- Upgrade ],
             {upgrade, Upgrade}
     end.
@@ -63,7 +63,7 @@ migrate(Conn, Version, Migrations) ->
 
 %% Private
 init_migrations(Conn) ->
-    {ok, _, _} = pgsql:squery(Conn,
+    {ok, _, _} = mysql:query(Conn,
                               "CREATE TABLE migrations ("
                               "id VARCHAR(255) PRIMARY KEY,"
                               "datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
