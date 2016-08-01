@@ -63,7 +63,7 @@ migrate(Conn, Version, Migrations) ->
 
 %% Private
 init_migrations(Conn) ->
-    {ok, _, _} = mysql:query(Conn,
+    ok = mysql:query(Conn,
                               "CREATE TABLE migrations ("
                               "id VARCHAR(255) PRIMARY KEY,"
                               "datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
